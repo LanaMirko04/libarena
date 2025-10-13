@@ -39,7 +39,7 @@ typedef struct Point {
 } Point_t;
 
 int main(void) {
-    ArenaHandler_t arena;
+    struct ArenaHandler arena;
 
     int ret = arena_init(&arena, 0x400U);
     if (ret == ERR)
