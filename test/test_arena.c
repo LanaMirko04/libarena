@@ -14,7 +14,7 @@
 #define ERR -1
 #define OK 0
 
-ArenaHandler_t arena;
+struct ArenaHandler arena;
 
 void setUp(void) { arena_init(&arena, DEFAULT_ARENA_CAPACITY); }
 void tearDown(void) { arena_free(&arena); }

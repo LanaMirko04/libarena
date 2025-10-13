@@ -30,7 +30,7 @@ static size_t prv_arena_aligned_offset(size_t offset, size_t align) {
  * \param[in]       harena: Pointer to the arena handler.
  * \return          None. The function will assert if the reallocation fails.
  */
-static void prv_arena_expand_buffer(ArenaHandler_t *harena) {
+static void prv_arena_expand_buffer(struct ArenaHandler *harena) {
     assert(harena != NULL);
 
     uint8_t *buffer = realloc(harena->buffer, harena->capacity * 2U);
@@ -40,7 +40,7 @@ static void prv_arena_expand_buffer(ArenaHandler_t *harena) {
     harena->capacity *= 2U;
 }
 
-int arena_init(ArenaHandler_t *harena, size_t capacity) {
+int arena_init(struct ArenaHandler *harena, size_t capacity) {
     if (harena == NULL)
         return -1;
 
@@ -53,11 +53,12 @@ int arena_init(ArenaHandler_t *harena, size_t capacity) {
     return 0;
 }
 
-void *arena_alloc(ArenaHandler_t *harena, size_t size) {
+void *arena_alloc(struct ArenaHandler *harena, size_t size) {
     return arena_alloc_align(harena, size, ARENA_DEFAULT_ALIGN);
 }
 
-void *arena_alloc_align(ArenaHandler_t *harena, size_t size, size_t align) {
+void *arena_alloc_align(struct ArenaHandler *harena, size_t size,
+                        size_t align) {
     if (harena == NULL || size == 0U)
         return NULL;
 
@@ -73,8 +74,8 @@ void *arena_alloc_align(ArenaHandler_t *harena, size_t size, size_t align) {
     return (void *)&harena->buffer[offset];
 }
 
-void *arena_calloc(ArenaHandler_t *harena, size_t size, size_t count) {
+void *arena_calloc(struct ArenaHandler *harena, size_t size, size_t count) {
     return arena_alloc(harena, size * count);
 }
 
-void arena_free(ArenaHandler_t *harena) { harena->offset = 0U; }
+void arena_free(struct ArenaHandler *harena) { harena->offset = 0U; }

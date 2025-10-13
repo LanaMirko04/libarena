@@ -1,0 +1,38 @@
+{
+  "$schema": "https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/schema/library.json",
+  "name": "Arena",
+  "version": "1.0.0",
+  "description": "An arena allocator implementation in C",
+  "keywords": [
+    "C",
+    "arena allocator"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LanaMirko04/libarena.git"
+  },
+  "authors": [
+    {
+      "name": "Mirko Lana",
+      "email": "lana.mirko@icloud.com",
+      "maintainer": true
+    }
+  ],
+  "license": "MIT",
+  "frameworks": "*",
+  "platforms": "*",
+  "dependencies": [],
+  "headers": [
+      "arena.h"
+  ],
+  "examples": [],
+  "export": {
+    "include": [
+      "src/**",
+      "include/**"
+    ]
+  },
+  "build": {
+    "flags": "-std=c11"
+  }
+}

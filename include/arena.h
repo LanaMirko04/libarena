@@ -18,11 +18,11 @@
 /*!
  * \brief           The arena handler.
  */
-typedef struct ArenaHandler {
+struct ArenaHandler {
     uint8_t *buffer; /*!< Pointer to the memory block */
     size_t capacity; /*!< Total capacity in bytes */
     size_t offset;   /*!< Current allocation offset */
-} ArenaHandler_t;
+};
 
 /*!
  * \brief           Initialize an arena instance with a given capacity.
@@ -31,7 +31,7 @@ typedef struct ArenaHandler {
  * \param[in]       capacity: Size in bytes of the arena.
  * \return          0 on success, non-zero otherwise.
  */
-int arena_init(ArenaHandler_t *harena, size_t capacity);
+int arena_init(struct ArenaHandler *harena, size_t capacity);
 
 /*!
  * \brief           Allocate a block of memory from the arena.
@@ -40,7 +40,7 @@ int arena_init(ArenaHandler_t *harena, size_t capacity);
  * \param[in]       size: Size in bytes of the memory block to allocate.
  * \return          Pointer to the allocated memory block, NULL otherwise.
  */
-void *arena_alloc(ArenaHandler_t *harena, size_t size);
+void *arena_alloc(struct ArenaHandler *harena, size_t size);
 
 /*!
  * \brief           Allocate a block of memory from the arena with alignment.
@@ -50,7 +50,7 @@ void *arena_alloc(ArenaHandler_t *harena, size_t size);
  * \param[in]       align: Alignment requirement for the allocated memory block.
  * \return          Pointer to the allocated memory block, NULL otherwise.
  */
-void *arena_alloc_align(ArenaHandler_t *harena, size_t size, size_t align);
+void *arena_alloc_align(struct ArenaHandler *harena, size_t size, size_t align);
 
 /*!
  * \brief           Allocate and zero-initialize a block of memory from the
@@ -61,7 +61,7 @@ void *arena_alloc_align(ArenaHandler_t *harena, size_t size, size_t align);
  * \param[in]       count: Number of elements to allocate.
  * \return          Pointer to the allocated memory block, NULL otherwise.
  */
-void *arena_calloc(ArenaHandler_t *harena, size_t size, size_t count);
+void *arena_calloc(struct ArenaHandler *harena, size_t size, size_t count);
 
 /*!
  * \brief           Free all memory allocated in the arena.
@@ -69,6 +69,6 @@ void *arena_calloc(ArenaHandler_t *harena, size_t size, size_t count);
  * \param[in]       harena: Pointer to the arena handler.
  * \return          None.
  */
-void arena_free(ArenaHandler_t *harena);
+void arena_free(struct ArenaHandler *harena);
 
 #endif /*! ARENA_H */
