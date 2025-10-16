@@ -62,7 +62,7 @@ int main(void) {
 ```
 
 ## API Reference
-Full API reference and docs are in the [API.md](docs/API.md) file.
+Full API reference and docs are in the [api.md](api.md) file.
 
 ## License
 [MIT](LICENSE) License.
