@@ -2,7 +2,7 @@
 **Arena** is a lightweight C static library for fast, linear memory allocation.
 
 ## Installation
- 
+
 ```sh
 $ git clone https://github.com/LanaMirko04/libarena.git && cd libarena
 $ make                  # Build the library
@@ -30,26 +30,23 @@ Quick example to get started:
 ```c
 #include <arena/arena.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-#define ERR -1
-#define OK 0
-
-typedef struct Point {
+struct Point {
     float x, y;
-} Point_t;
+};
 
 int main(void) {
     struct ArenaHandler arena;
+    struct ArenaObj obj;
 
-    int ret = arena_init(&arena, 0x400U);
-    if (ret == ERR)
-        return ERR;
+    arena_init(&arena);
+    enum ArenaReturnCode res = arena_alloc(&arena, sizeof(struct Point), &obj);
+    if (res != ARENA_RC_OK)
+        return EXIT_FAILURE;
 
-    Point_t *point_ptr = arena_alloc(&arena, sizeof(Point_t));
-    if (point_ptr == NULL)
-        return ERR;
-
-    *point_ptr = (Point_t){.x = 0.5, .y = 1.2};
+    struct Point *point_ptr = (struct Point *)arena_get_ptr(&obj);
+    *point_ptr = (struct Point){.x = 0.5, .y = 1.2};
 
     printf("Point(x=%.2f,y=%.2f)\tAddress=%p\n",
                 point_ptr->x,
@@ -57,7 +54,7 @@ int main(void) {
                 point_ptr);
 
     arena_free(&arena);
-    return OK;
+    return EXIT_SUCCESS;
 }
 ```
 

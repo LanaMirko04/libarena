@@ -20,62 +20,98 @@
  * \param[in]       align: The alignment requirement.
  * \return          The aligned offset that meets the specified alignment.
  */
-static size_t prv_arena_aligned_offset(size_t offset, size_t align) {
+static inline size_t prv_arena_aligned_offset(size_t offset, size_t align) {
     return (offset + (align - 1)) & ~(align - 1);
 }
 
 /*!
  * \brief           Expand the buffer of the arena to accommodate more memory.
  *
- * \param[in]       harena: Pointer to the arena handler.
- * \return          None. The function will assert if the reallocation fails.
+ * \param[in]       arena: Pointer to the arena handler.
+ * \return          ARENA_RC_OK on success, error code otherwise.
+ *                   - ARENA_RC_INVALID_ARG: if the arena pointer is NULL.
+ *                   - ARENA_RC_OUT_OF_MEM: if the new capacity exceeds maximum size.
+ *                   - ARENA_RC_MEM_ALLOC_FAIL: if memory allocation fails.
  */
-static void prv_arena_expand_buffer(struct ArenaHandler *harena) {
-    assert(harena != NULL);
+static enum ArenaReturnCode prv_arena_expand_buffer(struct ArenaHandler *arena) {
+    if (!arena)
+        return ARENA_RC_INVALID_ARG;
 
-    uint8_t *buffer = realloc(harena->buffer, harena->capacity * 2U);
-    assert(buffer != NULL);
+    size_t new_capacity = arena->capacity * 2U;
+    if (new_capacity >= ARENA_MAX_SIZE)
+        return ARENA_RC_OUT_OF_MEM;
 
-    harena->buffer = buffer;
-    harena->capacity *= 2U;
+    uint8_t *buffer = realloc(arena->buffer, new_capacity);
+    if (!buffer)
+        return ARENA_RC_MEM_ALLOC_FAIL;
+
+    arena->buffer = buffer;
+    arena->capacity = new_capacity;
+    return ARENA_RC_OK;
 }
 
-int arena_init(struct ArenaHandler *harena, size_t capacity) {
-    if (harena == NULL)
-        return -1;
+enum ArenaReturnCode arena_init(struct ArenaHandler *arena) {
+    if (!arena)
+        return ARENA_RC_INVALID_ARG;
 
-    harena->offset = 0U;
-    harena->capacity = capacity != 0U ? capacity : ARENA_DEFAULT_CAPACITY;
-    harena->buffer = (uint8_t *)malloc(capacity);
-    if (harena->buffer == NULL)
-        return -1;
+    arena->buffer = NULL;
+    arena->capacity = 0U;
+    arena->offset = 0U;
 
-    return 0;
+    return ARENA_RC_OK;
 }
 
-void *arena_alloc(struct ArenaHandler *harena, size_t size) {
-    return arena_alloc_align(harena, size, ARENA_DEFAULT_ALIGN);
+enum ArenaReturnCode arena_alloc(struct ArenaHandler *arena, size_t size, struct ArenaObj *obj) {
+    return arena_alloc_align(arena, size, ARENA_DEFAULT_ALIGN, obj);
 }
 
-void *arena_alloc_align(struct ArenaHandler *harena, size_t size,
-                        size_t align) {
-    if (harena == NULL || size == 0U)
-        return NULL;
+enum ArenaReturnCode arena_alloc_align(struct ArenaHandler *arena, size_t size, size_t align, struct ArenaObj *obj) {
+    if (!arena || !obj || size == 0U)
+        return ARENA_RC_INVALID_ARG;
 
-    size_t offset = prv_arena_aligned_offset(harena->offset, align);
+    if (!arena->buffer) {
+        arena->buffer = malloc(size);
+        if (!arena->buffer)
+            return ARENA_RC_MEM_ALLOC_FAIL;
 
-    if (offset + size >= harena->capacity)
-        prv_arena_expand_buffer(harena);
+        arena->capacity = size;
+        arena->offset = 0U;
+    }
 
-    harena->offset = offset + size;
+    size_t offset = prv_arena_aligned_offset(arena->offset, align);
+    if (offset + size > arena->capacity) {
+        enum ArenaReturnCode res = prv_arena_expand_buffer(arena);
+        if (res != ARENA_RC_OK)
+            return res;
+    }
 
-    memset(&harena->buffer[offset], 0, size);
+    obj->arena = arena;
+    obj->ptr = offset;
+    arena->offset = offset + size;
 
-    return (void *)&harena->buffer[offset];
+    memset(arena->buffer + obj->ptr, 0U, size);
+    return ARENA_RC_OK;
 }
 
-void *arena_calloc(struct ArenaHandler *harena, size_t size, size_t count) {
-    return arena_alloc(harena, size * count);
+enum ArenaReturnCode arena_calloc(struct ArenaHandler *arena, size_t size, size_t count, struct ArenaObj *obj) {
+    return arena_alloc(arena, size * count, obj);
 }
 
-void arena_free(struct ArenaHandler *harena) { harena->offset = 0U; }
+void arena_clear(struct ArenaHandler *arena) {
+    arena->offset = 0U;
+}
+
+void arena_free(struct ArenaHandler *arena) {
+    if (arena->buffer) {
+        free(arena->buffer);
+        arena->buffer = NULL;
+    }
+    arena->capacity = 0U;
+    arena->offset = 0U;
+}
+
+void *arena_get_ptr(struct ArenaObj *obj) {
+    assert(obj);
+    assert(obj->arena);
+    return (void *)(obj->arena->buffer + obj->ptr);
+}
