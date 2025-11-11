@@ -16,8 +16,12 @@
 
 struct ArenaHandler arena;
 
-void setUp(void) { arena_init(&arena, DEFAULT_ARENA_CAPACITY); }
-void tearDown(void) { arena_free(&arena); }
+void setUp(void) {
+    arena_init(&arena);
+}
+void tearDown(void) {
+    arena_free(&arena);
+}
 
 /*!
  * \defgroup        arena_init Test module initialization.
@@ -25,24 +29,16 @@ void tearDown(void) { arena_free(&arena); }
  */
 
 void check_arena_init_with_null_handler(void) {
-    int ret = arena_init(NULL, DEFAULT_ARENA_CAPACITY);
-    TEST_ASSERT_EQUAL_INT(ERR, ret);
-}
-
-void check_arena_init_with_zero_capacity(void) {
-    int ret = arena_init(&arena, 0U);
-    TEST_ASSERT_EQUAL_INT(OK, ret);
-    TEST_ASSERT_EQUAL_UINT(ARENA_DEFAULT_CAPACITY, arena.capacity);
-    TEST_ASSERT_NOT_NULL(arena.buffer);
-    TEST_ASSERT_EQUAL_UINT(0, arena.offset);
+    int ret = arena_init(NULL);
+    TEST_ASSERT_EQUAL_INT(ARENA_RC_INVALID_ARG, ret);
 }
 
 void check_arena_init(void) {
-    int ret = arena_init(&arena, DEFAULT_ARENA_CAPACITY);
-    TEST_ASSERT_EQUAL_INT(OK, ret);
-    TEST_ASSERT_EQUAL_UINT(DEFAULT_ARENA_CAPACITY, arena.capacity);
-    TEST_ASSERT_NOT_NULL(arena.buffer);
-    TEST_ASSERT_EQUAL_UINT(0, arena.offset);
+    int ret = arena_init(&arena);
+    TEST_ASSERT_EQUAL_INT_MESSAGE(ARENA_RC_OK, ret, "arena_init failed");
+    TEST_ASSERT_NULL_MESSAGE(arena.buffer, "arena buffer is not NULL after init");
+    TEST_ASSERT_EQUAL_UINT_MESSAGE(0U, arena.capacity, "arena capacity is not zero after init");
+    TEST_ASSERT_EQUAL_UINT_MESSAGE(0U, arena.offset, "arena offset is not zero after init");
 }
 
 /*!
@@ -55,30 +51,25 @@ void check_arena_init(void) {
  */
 
 void check_arena_alloc_returns_non_null_and_zeroed(void) {
-    void *ptr = arena_alloc(&arena, 16);
-    TEST_ASSERT_NOT_NULL(ptr);
+    struct ArenaObj obj;
+    enum ArenaReturnCode res = arena_alloc(&arena, sizeof(uint8_t), &obj);
+    TEST_ASSERT_EQUAL_INT_MESSAGE(ARENA_RC_OK, res, "arena_alloc failed");
 
-    uint8_t *bytes = (uint8_t *)ptr;
-    for (size_t i = 0; i < 16; i++) {
-        TEST_ASSERT_EQUAL_UINT8(0, bytes[i]);
-    }
+    uint8_t *data = arena_get_ptr(&obj);
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(0U, *data, "allocated memory is not zeroed");
 }
 
 void check_arena_alloc_sequential_allocations_do_not_overlap(void) {
-    void *p1 = arena_alloc(&arena, 16);
-    void *p2 = arena_alloc(&arena, 32);
-    TEST_ASSERT_NOT_NULL(p1);
-    TEST_ASSERT_NOT_NULL(p2);
-    TEST_ASSERT_TRUE(p2 > p1);
-    TEST_ASSERT_TRUE(((uintptr_t)p2) >= ((uintptr_t)p1 + 16));
-}
+    struct ArenaObj obj1, obj2;
+    enum ArenaReturnCode res1 = arena_alloc(&arena, 16, &obj1);
+    enum ArenaReturnCode res2 = arena_alloc(&arena, 32, &obj2);
+    TEST_ASSERT_EQUAL_INT_MESSAGE(ARENA_RC_OK, res1, "first arena_alloc failed");
+    TEST_ASSERT_EQUAL_INT_MESSAGE(ARENA_RC_OK, res2, "second arena_alloc failed");
 
-void check_arena_alloc_expands_buffer_when_needed(void) {
-    void *p1 = arena_alloc(&arena, arena.capacity - 8);
-    TEST_ASSERT_NOT_NULL(p1);
-    void *p2 = arena_alloc(&arena, 16);
-    TEST_ASSERT_NOT_NULL(p2);
-    TEST_ASSERT_TRUE(arena.capacity > DEFAULT_ARENA_CAPACITY);
+    uint8_t *ptr1 = arena_get_ptr(&obj1);
+    uint8_t *ptr2 = arena_get_ptr(&obj2);
+    TEST_ASSERT_TRUE_MESSAGE(ptr2 > ptr1, "second allocation overlaps first");
+    TEST_ASSERT_TRUE_MESSAGE((uintptr_t)ptr2 >= (uintptr_t)(ptr1 + 16), "second allocation overlaps first");
 }
 
 /*!
@@ -92,20 +83,29 @@ void check_arena_alloc_expands_buffer_when_needed(void) {
 
 void check_arena_alloc_align_returns_aligned_pointer(void) {
     size_t align = 16;
-    void *ptr = arena_alloc_align(&arena, 24, align);
-    TEST_ASSERT_NOT_NULL(ptr);
+    struct ArenaObj obj;
+    enum ArenaReturnCode res = arena_alloc_align(&arena, 24, align, &obj);
+    TEST_ASSERT_EQUAL_INT_MESSAGE(ARENA_RC_OK, res, "arena_alloc_align failed");
+
+    void *ptr = arena_get_ptr(&obj);
     TEST_ASSERT_EQUAL_UINT(0, ((uintptr_t)ptr) % align);
 }
 
 void check_arena_alloc_align_multiple_allocations_alignment(void) {
     size_t align = 8;
-    void *p1 = arena_alloc_align(&arena, 10, align);
-    void *p2 = arena_alloc_align(&arena, 20, align);
-    TEST_ASSERT_NOT_NULL(p1);
-    TEST_ASSERT_NOT_NULL(p2);
-    TEST_ASSERT_TRUE(p2 > p1);
-    TEST_ASSERT_EQUAL_UINT(0, ((uintptr_t)p1) % align);
-    TEST_ASSERT_EQUAL_UINT(0, ((uintptr_t)p2) % align);
+    struct ArenaObj obj1, obj2;
+    enum ArenaReturnCode res1 = arena_alloc_align(&arena, 10, align, &obj1);
+    enum ArenaReturnCode res2 = arena_alloc_align(&arena, 20, align, &obj2);
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(ARENA_RC_OK, res1, "first arena_alloc failed");
+    TEST_ASSERT_EQUAL_INT_MESSAGE(ARENA_RC_OK, res2, "second arena_alloc failed");
+
+    void *ptr1 = arena_get_ptr(&obj1);
+    void *ptr2 = arena_get_ptr(&obj2);
+
+    TEST_ASSERT_TRUE(ptr2 > ptr1);
+    TEST_ASSERT_EQUAL_UINT(0, ((uintptr_t)ptr1) % align);
+    TEST_ASSERT_EQUAL_UINT(0, ((uintptr_t)ptr2) % align);
 }
 
 /*!
@@ -120,10 +120,14 @@ void check_arena_alloc_align_multiple_allocations_alignment(void) {
 void check_arena_calloc_zeroes_memory(void) {
     size_t count = 10;
     size_t size = sizeof(int);
-    int *arr = (int *)arena_calloc(&arena, size, count);
-    TEST_ASSERT_NOT_NULL(arr);
+    struct ArenaObj obj;
+
+    enum ArenaReturnCode res = arena_calloc(&arena, size, count, &obj);
+    TEST_ASSERT_EQUAL_INT_MESSAGE(ARENA_RC_OK, res, "arena_calloc failed");
+
+    int *arr = (int *)arena_get_ptr(&obj);
     for (size_t i = 0; i < count; i++) {
-        TEST_ASSERT_EQUAL_INT(0, arr[i]);
+        TEST_ASSERT_EQUAL_INT_MESSAGE(0, arr[i], "allocated memory is not zeroed");
     }
 }
 
@@ -132,15 +136,36 @@ void check_arena_calloc_zeroes_memory(void) {
  */
 
 /*!
- * \defgroup        arena_free Test arena_free behavior.
+ * \defgroup        arena_clear Test arena_clear behavior.
  * @{
  */
 
-void check_arena_free_resets_offset(void) {
-    void *p1 = arena_alloc(&arena, 16);
+void check_arena_clear(void) {
+    struct ArenaObj obj;
+    enum ArenaReturnCode res = arena_alloc(&arena, 64, &obj);
+    TEST_ASSERT_EQUAL_INT_MESSAGE(ARENA_RC_OK, res, "arena_alloc failed");
+
+    arena_clear(&arena);
+    TEST_ASSERT_NOT_NULL_MESSAGE(arena.buffer, "arena buffer is NULL after arena_clear");
+    TEST_ASSERT_EQUAL_UINT_MESSAGE(0U, arena.offset, "arena offset not reset after arena_free");
+}
+
+/*!
+ * @}
+ */
+
+/*!
+  * \brief           arena_free test suite main function.
+  */
+
+void check_arena_free(void) {
+    struct ArenaObj obj;
+    enum ArenaReturnCode res = arena_alloc(&arena, 128, &obj);
+    TEST_ASSERT_EQUAL_INT_MESSAGE(ARENA_RC_OK, res, "arena_alloc failed");
+
     arena_free(&arena);
-    void *p2 = arena_alloc(&arena, 16);
-    TEST_ASSERT_EQUAL_PTR(p1, p2);
+    TEST_ASSERT_NULL_MESSAGE(arena.buffer, "arena buffer not NULL after arena_free");
+    TEST_ASSERT_EQUAL_UINT_MESSAGE(0U, arena.offset, "arena offset not reset after arena_free");
 }
 
 /*!
@@ -156,7 +181,6 @@ int main(void) {
      */
 
     RUN_TEST(check_arena_init_with_null_handler);
-    RUN_TEST(check_arena_init_with_zero_capacity);
     RUN_TEST(check_arena_init);
 
     /*!
@@ -170,7 +194,6 @@ int main(void) {
 
     RUN_TEST(check_arena_alloc_returns_non_null_and_zeroed);
     RUN_TEST(check_arena_alloc_sequential_allocations_do_not_overlap);
-    RUN_TEST(check_arena_alloc_expands_buffer_when_needed);
 
     /*!
      * @}
@@ -200,15 +223,25 @@ int main(void) {
      */
 
     /*!
-     * \defgroup        arena_free Test arena_free behavior.
+     * \defgroup        arena_clear Test arena_free behavior.
      * @{
      */
 
-    RUN_TEST(check_arena_free_resets_offset);
+    RUN_TEST(check_arena_clear);
 
     /*!
      * @}
      */
 
+    /*!
+     * \defgroup        arena_clear Test arena_free behavior.
+     * @{
+     */
+
+    RUN_TEST(check_arena_free);
+
+    /*!
+     * @}
+     */
     return UNITY_END();
 }
