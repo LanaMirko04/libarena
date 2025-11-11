@@ -64,6 +64,7 @@ enum ArenaReturnCode arena_init(struct ArenaHandler *arena);
  * \return          ARENA_RC_OK on success, error code otherwise.
  *                   - ARENA_RC_INVALID_ARG: if invalid arguments are provided.
  *                   - ARENA_RC_OUT_OF_MEM: if ARENA_MAX_SIZE is exceeded.
+ *                   - ARENA_RC_MEM_ALLOC_FAIL: if memory allocation fails.
  */
 enum ArenaReturnCode arena_alloc(struct ArenaHandler *arena, size_t size, struct ArenaObj *obj);
 
@@ -77,6 +78,7 @@ enum ArenaReturnCode arena_alloc(struct ArenaHandler *arena, size_t size, struct
  * \return          ARENA_RC_OK on success, error code otherwise.
  *                   - ARENA_RC_INVALID_ARG: if invalid arguments are provided.
  *                   - ARENA_RC_OUT_OF_MEM: if ARENA_MAX_SIZE is exceeded.
+ *                   - ARENA_RC_MEM_ALLOC_FAIL: if memory allocation fails.
  */
 enum ArenaReturnCode arena_alloc_align(struct ArenaHandler *arena, size_t size, size_t align, struct ArenaObj *obj);
 
@@ -91,6 +93,7 @@ enum ArenaReturnCode arena_alloc_align(struct ArenaHandler *arena, size_t size, 
  * \return          ARENA_RC_OK on success, error code otherwise.
  *                   - ARENA_RC_INVALID_ARG: if invalid arguments are provided.
  *                   - ARENA_RC_OUT_OF_MEM: if ARENA_MAX_SIZE is exceeded.
+ *                   - ARENA_RC_MEM_ALLOC_FAIL: if memory allocation fails.
  */
 enum ArenaReturnCode arena_calloc(struct ArenaHandler *arena, size_t size, size_t count, struct ArenaObj *obj);
 
