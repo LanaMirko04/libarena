@@ -61,15 +61,15 @@ void check_arena_alloc_returns_non_null_and_zeroed(void) {
 
 void check_arena_alloc_sequential_allocations_do_not_overlap(void) {
     struct ArenaObj obj1, obj2;
-    enum ArenaReturnCode res1 = arena_alloc(&arena, 16, &obj1);
-    enum ArenaReturnCode res2 = arena_alloc(&arena, 32, &obj2);
+    enum ArenaReturnCode res1 = arena_alloc(&arena, 1U, &obj1);
+    enum ArenaReturnCode res2 = arena_alloc(&arena, 1U, &obj2);
     TEST_ASSERT_EQUAL_INT_MESSAGE(ARENA_RC_OK, res1, "first arena_alloc failed");
     TEST_ASSERT_EQUAL_INT_MESSAGE(ARENA_RC_OK, res2, "second arena_alloc failed");
 
     uint8_t *ptr1 = arena_get_ptr(&obj1);
     uint8_t *ptr2 = arena_get_ptr(&obj2);
     TEST_ASSERT_TRUE_MESSAGE(ptr2 > ptr1, "second allocation overlaps first");
-    TEST_ASSERT_TRUE_MESSAGE((uintptr_t)ptr2 >= (uintptr_t)(ptr1 + 16), "second allocation overlaps first");
+    TEST_ASSERT_TRUE_MESSAGE((uintptr_t)ptr2 >= (uintptr_t)(ptr1 + 1U), "second allocation overlaps first");
 }
 
 /*!
@@ -84,7 +84,7 @@ void check_arena_alloc_sequential_allocations_do_not_overlap(void) {
 void check_arena_alloc_align_returns_aligned_pointer(void) {
     size_t align = 16;
     struct ArenaObj obj;
-    enum ArenaReturnCode res = arena_alloc_align(&arena, 24, align, &obj);
+    enum ArenaReturnCode res = arena_alloc_align(&arena, 4U, align, &obj);
     TEST_ASSERT_EQUAL_INT_MESSAGE(ARENA_RC_OK, res, "arena_alloc_align failed");
 
     void *ptr = arena_get_ptr(&obj);
@@ -94,8 +94,8 @@ void check_arena_alloc_align_returns_aligned_pointer(void) {
 void check_arena_alloc_align_multiple_allocations_alignment(void) {
     size_t align = 8;
     struct ArenaObj obj1, obj2;
-    enum ArenaReturnCode res1 = arena_alloc_align(&arena, 10, align, &obj1);
-    enum ArenaReturnCode res2 = arena_alloc_align(&arena, 20, align, &obj2);
+    enum ArenaReturnCode res1 = arena_alloc_align(&arena, 4U, align, &obj1);
+    enum ArenaReturnCode res2 = arena_alloc_align(&arena, 4U, align, &obj2);
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(ARENA_RC_OK, res1, "first arena_alloc failed");
     TEST_ASSERT_EQUAL_INT_MESSAGE(ARENA_RC_OK, res2, "second arena_alloc failed");
@@ -142,7 +142,7 @@ void check_arena_calloc_zeroes_memory(void) {
 
 void check_arena_clear(void) {
     struct ArenaObj obj;
-    enum ArenaReturnCode res = arena_alloc(&arena, 64, &obj);
+    enum ArenaReturnCode res = arena_alloc(&arena, 1U, &obj);
     TEST_ASSERT_EQUAL_INT_MESSAGE(ARENA_RC_OK, res, "arena_alloc failed");
 
     arena_clear(&arena);
@@ -160,7 +160,7 @@ void check_arena_clear(void) {
 
 void check_arena_free(void) {
     struct ArenaObj obj;
-    enum ArenaReturnCode res = arena_alloc(&arena, 128, &obj);
+    enum ArenaReturnCode res = arena_alloc(&arena, 1U, &obj);
     TEST_ASSERT_EQUAL_INT_MESSAGE(ARENA_RC_OK, res, "arena_alloc failed");
 
     arena_free(&arena);
