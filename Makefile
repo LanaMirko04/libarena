@@ -25,7 +25,7 @@ TEST_TARGET := $(BUILD_DIR)/tests
 TEST_RESULTS := $(BUILD_DIR)/test_results.txt
 TEST_PASSE := `grep -s PASS $(TEST_RESULTS)`
 TEST_FAIL := `grep -s FAIL $(TEST_RESULTS)`
-TEST_IGNORE := `grep -s IGNORE $(TEST_RESULTS)` 
+TEST_IGNORE := `grep -s IGNORE $(TEST_RESULTS)`
 
 GREEN  := \033[1;32m
 RED    := \033[1;31m
@@ -41,74 +41,82 @@ $(BUILD_DIR):
 	@mkdir -p $@
 
 $(TARGET): $(OBJECTS)
-	ar rcs $@ $^
+	@printf "$(BLUE)>>>$(RESET) Archiving $(LIB_NAME)...\n"
+	@ar rcs $@ $^ && printf "$(GREEN)Build successful!$(RESET)\n" || (printf "$(RED)Build failed!$(RESET)\n" && exit 1)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@printf "$(BLUE)>>>$(RESET) Compiling $<...\n"
+	@$(CC) $(CFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/test_%.o: $(TEST_DIR)/%.c | $(BUILD_DIR)
-	$(CC) -I$(UNITY_PATH) $(CFLAGS) -c -o $@ $<
+	@printf "$(BLUE)>>>$(RESET) Compiling test $<...\n"
+	@$(CC) -I$(UNITY_PATH) $(CFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/unity_%.o: $(UNITY_PATH)/%.c | $(BUILD_DIR)
-	$(CC) -I$(UNITY_PATH) $(CFLAGS) -c -o $@ $<
+	@printf "$(BLUE)>>>$(RESET) Compiling Unity $<...\n"
+	@$(CC) -I$(UNITY_PATH) $(CFLAGS) -c -o $@ $<
 
 $(TEST_TARGET): $(TARGET) $(UNITY_OBJECTS) $(TEST_OBJECTS)
-	$(CC) -I$(UNITY_PATH) $(CFLAGS) -o $(TEST_TARGET) $(UNITY_OBJECTS) $(TEST_OBJECTS) $(TARGET)
+	@printf "$(BLUE)>>>$(RESET) Linking unit tests...\n"
+	@$(CC) -I$(UNITY_PATH) $(CFLAGS) -o $(TEST_TARGET) $(UNITY_OBJECTS) $(TEST_OBJECTS) $(TARGET) && printf "$(GREEN)Test build successful!$(RESET)\n" || (printf "$(RED)Test build failed!$(RESET)\n" && exit 1)
 
 $(TEST_RESULTS): $(TEST_TARGET)
 	@-./$< > $@ 2>&1
 
 test: $(TEST_TARGET)
-	@echo "$(BLUE)>>>$(RESET) Running unit tests..."
+	@printf "$(BLUE)>>>$(RESET) Running unit tests...\n"
 	@mkdir -p $(BUILD_DIR)
 	@./$(TEST_TARGET) > $(TEST_RESULTS) 2>&1 || true
 
-	@echo "$(YELLOW)--- IGNORED ---$(RESET)"
-	@grep -s IGNORE $(TEST_RESULTS) || echo "None"
-	@echo
+	@printf "$(YELLOW)--- IGNORED ---$(RESET)\n"
+	@grep -s IGNORE $(TEST_RESULTS) || printf "None\n"
+	@printf "\n"
 
-	@echo "$(RED)--- FAILURES ---$(RESET)"
-	@grep -s FAIL $(TEST_RESULTS) || echo "None"
-	@echo
+	@printf "$(RED)--- FAILURES ---$(RESET)\n"
+	@grep -s FAIL $(TEST_RESULTS) || printf "None\n"
+	@printf "\n"
 
-	@echo "$(GREEN)--- PASSED ---$(RESET)"
-	@grep -s PASS $(TEST_RESULTS) || echo "None"
-	@echo
+	@printf "$(GREEN)--- PASSED ---$(RESET)\n"
+	@grep -s PASS $(TEST_RESULTS) || printf "None\n"
+	@printf "\n"
 
 	@PASSED=$$(grep -c PASS $(TEST_RESULTS) 2>/dev/null); \
 	FAILED=$$(grep -c FAIL $(TEST_RESULTS) 2>/dev/null); \
 	IGNORED=$$(grep -c IGNORE $(TEST_RESULTS) 2>/dev/null); \
 	TOTAL=$$((PASSED + FAILED + IGNORED)); \
-	echo "$(BLUE)Summary:$(RESET) $$TOTAL total | $(GREEN)$$PASSED passed$(RESET), $(RED)$$FAILED failed$(RESET), $(YELLOW)$$IGNORED ignored$(RESET)"; \
+	printf "$(BLUE)Summary:$(RESET) $$TOTAL total | $(GREEN)$$PASSED passed$(RESET), $(RED)$$FAILED failed$(RESET), $(YELLOW)$$IGNORED ignored$(RESET)\n"; \
 	[ $$FAILED -eq 0 ]
 
 -include $(DEPS)
 
 clean:
-	rm -rf $(BUILD_DIR)
+	@printf "$(BLUE)>>>$(RESET) Cleaning build artifacts...\n"
+	@rm -rf $(BUILD_DIR)
 
 install: $(TARGET)
-	@echo "Installing $(LIB_NAME) to $(INSTALL_LIB_PATH)"
-	install -d $(INSTALL_LIB_PATH)
-	install -m 0755 $(TARGET) $(INSTALL_LIB_PATH)/$(LIB_NAME)
-	@echo "Installing headers to $(INSTALL_INC_PATH)"
-	install -d $(INSTALL_INC_PATH)
-	install -m 0644 include/*.h $(INSTALL_INC_PATH)
+	@printf "$(BLUE)>>>$(RESET) Installing $(LIB_NAME) to $(INSTALL_LIB_PATH)\n"
+	@install -d $(INSTALL_LIB_PATH)
+	@install -m 0755 $(TARGET) $(INSTALL_LIB_PATH)/$(LIB_NAME)
+	@printf "$(BLUE)>>>$(RESET) Installing headers to $(INSTALL_INC_PATH)\n"
+	@install -d $(INSTALL_INC_PATH)
+	@install -m 0644 include/*.h $(INSTALL_INC_PATH)
+	@printf "$(GREEN)Installation complete!$(RESET)\n"
 
 uninstall:
-	@echo "Removing $(LIB_NAME) from $(INSTALL_LIB_PATH)"
-	rm -f $(INSTALL_LIB_PATH)/$(LIB_NAME)
-	@echo "Removing headers from $(INSTALL_INC_PATH)"
-	rm -f $(INSTALL_INC_PATH)/*.h
-	rmdir --ignore-fail-on-non-empty $(INSTALL_INC_PATH)
+	@printf "$(BLUE)>>>$(RESET) Removing $(LIB_NAME) from $(INSTALL_LIB_PATH)...\n"
+	@rm -f $(INSTALL_LIB_PATH)/$(LIB_NAME)
+	@printf "$(BLUE)>>>$(RESET) Removing headers from $(INSTALL_INC_PATH)...\n"
+	@rm -f $(INSTALL_INC_PATH)/*.h
+	@rmdir --ignore-fail-on-non-empty $(INSTALL_INC_PATH)
+	@printf "$(GREEN)Uninstallation complete!$(RESET)\n"
 
 help:
-	@echo ""
-	@echo "$(YELLOW)Available targets:$(RESET)"
-	@echo "  $(GREEN)make$(RESET)           - Build the library"
-	@echo "  $(GREEN)make install$(RESET)   - Install library and headers system-wide"
-	@echo "  $(GREEN)make uninstall$(RESET) - Remove installed files"
-	@echo "  $(GREEN)make clean$(RESET)     - Remove build artifacts"
-	@echo "  $(GREEN)make test$(RESET)      - Run unit tests"
-	@echo "  $(GREEN)make help$(RESET)      - Show this help message"
-	@echo ""
+	@printf "\n"
+	@printf "$(YELLOW)Available targets:$(RESET)\n"
+	@printf "  $(GREEN)make$(RESET)           - Build the library\n"
+	@printf "  $(GREEN)make install$(RESET)   - Install library and headers system-wide\n"
+	@printf "  $(GREEN)make uninstall$(RESET) - Remove installed files\n"
+	@printf "  $(GREEN)make clean$(RESET)     - Remove build artifacts\n"
+	@printf "  $(GREEN)make test$(RESET)      - Run unit tests\n"
+	@printf "  $(GREEN)make help$(RESET)      - Show this help message\n"
+	@printf "\n"
