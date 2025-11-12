@@ -119,7 +119,7 @@ void arena_free(struct ArenaHandler *arena);
  * \param[in]       obj: Pointer to the arena object.
  * \return          Pointer to the allocated memory block.
  */
-void *arena_get_ptr(struct ArenaObj *obj);
+void *arena_get_ptr(const struct ArenaObj *obj);
 
 #ifdef __cplusplus
 }

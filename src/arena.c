@@ -110,7 +110,7 @@ void arena_free(struct ArenaHandler *arena) {
     arena->offset = 0U;
 }
 
-void *arena_get_ptr(struct ArenaObj *obj) {
+void *arena_get_ptr(const struct ArenaObj *obj) {
     assert(obj);
     assert(obj->arena);
     return (void *)(obj->arena->buffer + obj->ptr);
